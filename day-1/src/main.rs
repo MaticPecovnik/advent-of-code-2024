@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env,
     fs::File,
     io::{self, BufRead, BufReader},
@@ -54,8 +55,20 @@ fn read_vectors_from_file(filename: &str) -> io::Result<(Vec<i32>, Vec<i32>)> {
 
     Ok((left, right))
 }
+
+fn get_occurence_mapping(vector: &Vec<i32>) -> HashMap<i32, i32> {
+    let mut map = HashMap::new();
+
+    for el in vector.iter() {
+        let freq: &mut i32 = map.entry(*el).or_insert(0);
+        *freq += 1;
+    }
+    map
+}
+
 fn main() {
     let mut sum_distances: i32 = 0;
+    let mut similarity_score: i32 = 0;
 
     match read_vectors_from_file("input.txt") {
         Ok((mut left, mut right)) => {
@@ -63,15 +76,23 @@ fn main() {
             left.sort();
             right.sort();
 
+            let occurances = get_occurence_mapping(&right);
+
             for (l, r) in left.iter().zip(right.iter()) {
                 if l >= r {
                     sum_distances += l - r;
                 } else {
                     sum_distances += r - l;
                 }
+
+                match occurances.get(&l) {
+                    Some(freq_in_right) => similarity_score += l * freq_in_right,
+                    None => (),
+                }
             }
 
             println!("Got sum of distances: {}", sum_distances);
+            println!("Got similarity score: {}", similarity_score);
         }
         Err(e) => {
             eprintln!("Error reading vectors from file: {}", e);
